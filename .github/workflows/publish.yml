@@ -1,0 +1,96 @@
+name: Publish
+
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build -c Release --no-restore
+
+      - name: Test
+        run: dotnet test -c Release --no-build
+
+      - name: Pack
+        run: dotnet pack -c Release --output ./artifacts
+
+      - name: Consumer smoke test
+        run: |
+          mkdir -p /tmp/smoke
+          cat > /tmp/smoke/nuget.config <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <configuration>
+            <packageSources>
+              <add key="local" value="${{ github.workspace }}/artifacts" />
+              <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+            </packageSources>
+          </configuration>
+          EOF
+          cat > /tmp/smoke/Smoke.csproj <<'EOF'
+          <Project Sdk="Microsoft.NET.Sdk">
+            <PropertyGroup>
+              <TargetFramework>net8.0</TargetFramework>
+              <Nullable>enable</Nullable>
+              <ImplicitUsings>enable</ImplicitUsings>
+            </PropertyGroup>
+            <ItemGroup>
+              <PackageReference Include="Zolab.EmailOtp" Version="*" />
+              <PackageReference Include="Zolab.EmailOtp.EntityFramework" Version="*" />
+              <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="8.0.11" />
+            </ItemGroup>
+          </Project>
+          EOF
+          cat > /tmp/smoke/ServiceUsage.cs <<'EOF'
+          using EmailOtp;
+          using EmailOtp.EntityFramework;
+          using Microsoft.EntityFrameworkCore;
+          using Microsoft.Extensions.DependencyInjection;
+          public static class ServiceUsage
+          {
+              public static async System.Threading.Tasks.Task Exercise(IEmailOtpService otp)
+              {
+                  EmailOtpRequestResult req = await otp.RequestAsync("user@example.com");
+                  _ = (req.Email, req.Purpose, req.ExpiresAt);
+                  EmailOtpVerifyResult v = await otp.VerifyAsync("user@example.com", "123456");
+                  _ = (v.Succeeded, v.Email, v.Purpose, v.FailureReason, v.RemainingAttempts);
+              }
+          }
+          public class SmokeDbContext : Microsoft.EntityFrameworkCore.DbContext
+          {
+              public SmokeDbContext(Microsoft.EntityFrameworkCore.DbContextOptions<SmokeDbContext> o) : base(o) { }
+              protected override void OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder b) => b.AddEmailOtp();
+          }
+          EOF
+          dotnet build /tmp/smoke/Smoke.csproj -c Release
+
+      - name: Push to NuGet
+        run: |
+          for pkg in ./artifacts/*.nupkg; do
+            dotnet nuget push "$pkg" \
+              --api-key ${{ secrets.NUGET_API_KEY }} \
+              --source https://api.nuget.org/v3/index.json \
+              --skip-duplicate
+          done
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ./artifacts/*.nupkg
+            ./artifacts/*.snupkg
+          generate_release_notes: true

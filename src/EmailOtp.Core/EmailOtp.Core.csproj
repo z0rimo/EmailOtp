@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- 공통 설정(TFM, Nullable, 패키지 메타데이터)은 ../../Directory.Build.props 참조 -->
+  <PropertyGroup>
+    <PackageId>Zolab.EmailOtp</PackageId>
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    <Description>Email magic code (one-time password) for passwordless login in .NET. Not TOTP/HOTP — the server generates and delivers short-lived codes and manages their lifecycle. Storage-agnostic core; pair with Zolab.EmailOtp.EntityFramework for EF Core persistence.</Description>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.2" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.17" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="9.0.17" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.0" />
+  </ItemGroup>
+
+  <!-- The test project constructs internal types (EmailOtpService, default impls) directly. The EF adapter
+       needs no friend access — it references only the public surface (incl. EmailOtpSchema). -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="EmailOtp.Tests" />
+  </ItemGroup>
+
+  <!-- Internal types/members to strip from the packaged XML docs (see Directory.Build.props). -->
+  <ItemGroup>
+    <EmailOtpInternalDocId Include="EmailOtp.EmailOtpService" />
+    <EmailOtpInternalDocId Include="EmailOtp.HmacEmailOtpHasher" />
+    <EmailOtpInternalDocId Include="EmailOtp.NumericEmailOtpCodeGenerator" />
+    <EmailOtpInternalDocId Include="EmailOtp.DefaultEmailOtpEmailNormalizer" />
+    <EmailOtpInternalDocId Include="Microsoft.Extensions.DependencyInjection.EmailOtpOptionsValidator" />
+    <EmailOtpInternalDocId Include="EmailOtp.EmailOtpOptions.Validate" />
+    <EmailOtpInternalDocId Include="EmailOtp.EmailOtpOptions.MinSecretBytes" />
+  </ItemGroup>
+
+</Project>

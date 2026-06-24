@@ -1,0 +1,31 @@
+## .NET / build artifacts
+bin/
+obj/
+*.user
+*.suo
+.vs/
+
+## Test results / coverage
+[Tt]est[Rr]esults/
+coverage/
+*.coverage
+*.trx
+
+## NuGet
+*.nupkg
+*.snupkg
+.nuget/
+artifacts/
+
+## Rider / VS Code
+.idea/
+.vscode/
+
+## OS
+.DS_Store
+Thumbs.db
+
+## Secrets — pepper must never be committed
+*.env
+.env*
+appsettings.*.local.json
