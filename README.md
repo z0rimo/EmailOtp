@@ -148,17 +148,18 @@ independent codes per purpose — `"login"`, `"email-change"`, `"password-reset"
 
 ## Providers & storage notes
 
-- **Provider support:** SQLite is **integration-tested** (full suite, real DB), SQL Server is **DDL-tested**
-  (generated schema verified, not yet exercised against a live server). **All other providers are
-  unsupported until tested** — they may work, but that is unverified.
+- **Provider support:** SQLite is **integration-tested** (full suite, real DB, including concurrent
+  stress tests). SQL Server is **live-tested** (request/verify flow verified against a real SQL Server;
+  concurrent stress tests not yet run). **All other providers are unsupported until tested** — they may
+  work, but that is unverified.
 - **Concurrent issuance:** activation supersedes the old code and promotes the new one **atomically in one
   transaction** (a rollback restores the old active if anything fails, so a failed replacement never leaves the
   slot with no code). On SQLite the transaction is **`BEGIN IMMEDIATE`**, which takes write ownership at BEGIN
   so two overlapping same-slot activations serialize there instead of hitting the shared→exclusive lock-upgrade
   deadlock — and the delivery-deadline check is evaluated after that write ownership is held. Verified on
-  SQLite (genuinely parallel + rollback tests); concurrent activation on other providers (e.g. SQL Server,
-  which uses row locks and a normal transaction) — including whether the deadline check holds under lock
-  waiting — is **unverified until integration-tested**. Recognized transient-lock / concurrency conflicts are
+  SQLite (genuinely parallel + rollback tests). SQL Server live use is verified; concurrent activation
+  stress tests (whether the deadline check holds under lock waiting with row locks + normal transaction)
+  are **not yet run**. Recognized transient-lock / concurrency conflicts are
   retried (bounded, with jitter); a persistent conflict surfaces as a transient `EmailOtpConcurrencyException`
   (retry the request).
 - **Single-active-slot** is enforced by a **filtered unique index** on `(Email, Purpose) WHERE [Status] = 0`.

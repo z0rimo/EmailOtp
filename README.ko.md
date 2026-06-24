@@ -144,16 +144,16 @@ app.MapPost("/auth/verify-code", async (string email, string code, IEmailOtpServ
 
 ## Provider 및 저장소 참고
 
-- **provider 지원 수준:** SQLite는 **integration-tested**(전체 스위트, 실 DB), SQL Server는 **DDL-tested**
-  (생성 스키마 검증, 아직 실 서버 대상 실행은 안 함). **그 외 provider는 테스트 전까지 미지원** — 동작할
-  수는 있으나 미검증입니다.
+- **provider 지원 수준:** SQLite는 **integration-tested**(전체 스위트, 실 DB, 동시성 스트레스 테스트 포함).
+  SQL Server는 **live-tested**(실 서버에서 request/verify 플로우 검증, 동시성 스트레스 테스트는 미실시).
+  **그 외 provider는 테스트 전까지 미지원** — 동작할 수는 있으나 미검증입니다.
 - **동시 발급:** activation은 기존 코드 supersede + 새 코드 promote를 **한 트랜잭션 안에서 원자적으로** 수행합니다
   (실패 시 rollback이 기존 active를 복원 → 교체 실패가 슬롯을 코드 없는 상태로 남기지 않음). SQLite에서는
   트랜잭션이 **`BEGIN IMMEDIATE`** 라서 BEGIN 시점에 write 소유권을 잡고, 같은 슬롯에 대한 두 activation이
   겹쳐도 거기서 직렬화되어 shared→exclusive 락 업그레이드 deadlock을 피하며, **delivery deadline 검사도 write
-  소유권 확보 후 평가**됩니다. SQLite에서 (진짜 병렬 + rollback 테스트로) 검증됐으며, 다른 provider(예: row-lock
-  + 일반 트랜잭션 쓰는 SQL Server)에서의 동시 activation은 — deadline 검사가 락 대기 중에도 유지되는지 포함 —
-  **integration 테스트 전까지 미검증**입니다. 인식된 transient-lock/concurrency 충돌은 bounded retry(jitter
+  소유권 확보 후 평가**됩니다. SQLite에서 (진짜 병렬 + rollback 테스트로) 검증됐으며, SQL Server live 사용도 검증됐습니다.
+  다만 동시 activation 스트레스 테스트(row-lock + 일반 트랜잭션 환경에서 deadline 검사가 락 대기 중에도
+  유지되는지)는 **미실시**입니다. 인식된 transient-lock/concurrency 충돌은 bounded retry(jitter
   포함), 지속적 충돌은 transient `EmailOtpConcurrencyException`으로 표면화됩니다(요청 재시도).
 - **단일 active 슬롯**은 `(Email, Purpose) WHERE [Status] = 0` **filtered unique index**로 보장됩니다.
   partial/filtered unique index를 지원하는 provider가 필요합니다 — SQLite·SQL Server는 작성한 그대로
