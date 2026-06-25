@@ -9,8 +9,6 @@
 > 그 코드의 전체 수명주기를 데이터베이스에서 관리**합니다 — Slack, Notion 등이 쓰는
 > "이메일로 6자리 코드를 보냈습니다" 패턴입니다.
 
-[![CI](https://github.com/z0rimo/emailotp_2/actions/workflows/ci.yml/badge.svg)](https://github.com/z0rimo/emailotp_2/actions/workflows/ci.yml)
-
 ## 왜 필요한가
 
 ASP.NET Core에는 "이메일로 로그인 코드를 보내는" 1급 기능이 없습니다. 직접 구현하면 보통 정작
