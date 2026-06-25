@@ -9,8 +9,6 @@
 > delivers it (email/SMS/your choice), and manages its full lifecycle** in your database —
 > the "we emailed you a 6-digit code" pattern used by Slack, Notion, etc.
 
-[![CI](https://github.com/z0rimo/emailotp_2/actions/workflows/ci.yml/badge.svg)](https://github.com/z0rimo/emailotp_2/actions/workflows/ci.yml)
-
 ## Why
 
 ASP.NET Core has no first-class "email a login code" primitive. Rolling your own usually
